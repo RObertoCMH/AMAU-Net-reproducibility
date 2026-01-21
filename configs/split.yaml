@@ -1,0 +1,52 @@
+# -------------------------------------------------------------------
+# AMAU-Net / F3 Netherlands Benchmark — SPLIT CONFIG (precomputed splits)
+#
+# This file does NOT regenerate the spatial split from the full 3D volume.
+# It only documents and points to the already-saved split files used in
+# our experiments:
+#   - train/train_seismic.npy  + train/train_labels.npy
+#   - validation/test2_seismic.npy + validation/test2_labels.npy
+#   - test/test1_seismic.npy   + test/test1_labels.npy  (Benchmark Test set #1)
+#
+# Important:
+# - The F3 dataset is NOT redistributed in this repository.
+# - Users must set `base_dir` to their local/Drive path where these .npy
+#   files are stored.
+# -------------------------------------------------------------------
+
+project:
+  name: "AMAU-Net F3 reproducibility"
+  dataset: "F3 Netherlands"
+
+data:
+  # Indicates that the split is already provided as separate .npy files.
+  mode: "precomputed_splits"
+
+  # Base directory that contains the train/, validation/, and test/ folders.
+  # Example (your Colab/Drive path):
+  #   /content/drive/MyDrive/RCMH/Doctoral_Project/CIC_Doctoral_Project/data
+  #
+  # For portability, keep a placeholder here and overwrite it locally.
+  base_dir: "PATH/TO/YOUR/data"
+
+  # TRAIN split (NW block in the manuscript)
+  train:
+    seismic: "train/train_seismic.npy"
+    labels:  "train/train_labels.npy"
+
+  # VALIDATION split (E block in the manuscript; files named test2_*)
+  val:
+    seismic: "validation/test2_seismic.npy"
+    labels:  "validation/test2_labels.npy"
+
+  # TEST split (SW block; Benchmark Test set #1; files named test1_*)
+  test:
+    seismic: "test/test1_seismic.npy"
+    labels:  "test/test1_labels.npy"
+
+split_reference:
+  # Spatial split definition (Alaudah-style). Stored here for documentation only,
+  # since the split is already applied in the precomputed .npy files.
+  IL0: 300
+  XL0: 1000
+  note: "Split already applied in the provided .npy files; IL0/XL0 kept for documentation."
