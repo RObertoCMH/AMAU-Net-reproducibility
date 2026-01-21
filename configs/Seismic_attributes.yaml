@@ -1,0 +1,46 @@
+# configs/attributes.yaml
+# -------------------------------------------------------------------
+# AMAU-Net / F3 Netherlands — INSTANTANEOUS ATTRIBUTE CONFIG
+#
+# This config documents how the 4-channel input is built:
+#   [amplitude, instantaneous phase, angular instantaneous frequency, envelope]
+#
+# IMPORTANT (matches current implementation):
+# - Phase channel is the wrapped angle() of the analytic signal (radians).
+# - Angular instantaneous frequency is computed as the sample-wise derivative
+#   of the UNWRAPPED phase: d(unwrap(phase))/dn  -> units: rad/sample.
+#
+# The Hilbert transform is computed trace-wise along the last axis (axis=-1).
+# -------------------------------------------------------------------
+
+project:
+  dataset: "F3 Netherlands"
+
+attributes:
+  # Channel order written to disk and used as model input
+  channel_order:
+    - "amplitude"
+    - "inst_phase_rad"          # wrapped phase in radians
+    - "ang_inst_freq_rad_per_sample"
+    - "envelope"
+
+  hilbert:
+    axis: -1                    # time/sample axis (trace-wise)
+
+  phase:
+    unwrap_for_frequency: true  # unwrap is used only for frequency computation
+    output: "wrapped"           # the saved phase channel remains wrapped
+
+  angular_frequency:
+    method: "gradient"          # numpy.gradient on unwrapped phase
+    units: "rad_per_sample"     # matches current code
+    # If later switching to Hz: set units="hz" and divide by (2*pi*dt_seconds)
+
+  envelope:
+    method: "abs"               # magnitude of analytic signal
+
+io:
+  # Directory name used to cache precomputed attribute tensors (not committed)
+  # This is a local path and should be overridden by the user.
+  out_dir: "PATH/TO/YOUR/precomputed_attributes"
+  filename_pattern: "{split}_attributes.npy"  # e.g., train_attributes.npy
