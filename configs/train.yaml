@@ -6,6 +6,9 @@
 # U-Net (amp), U-Net+attributes, and AMAU-Net are trained under identical
 # optimization settings and training budget.
 # -------------------------------------------------------------------
+normalization:
+  enabled: true
+  eps: 1.0e-6
 
 training:
   device: "auto"              # "cuda", "mps", or "cpu" (auto-select in code later)
