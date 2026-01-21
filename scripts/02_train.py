@@ -219,22 +219,6 @@ def train_one_seed(
     batch_size = int(train_cfg["training"]["batch_size"])
     epochs = int(train_cfg["training"]["epochs"])
 
-    # Optional normalization (fit on TRAIN only, apply to VAL)
-    norm_cfg = train_cfg.get("normalization", {"enabled": False})
-    if bool(norm_cfg.get("enabled", False)):
-        eps = float(norm_cfg.get("eps", 1e-6))
-        mu, sigma = fit_train_channel_stats(x_train, eps=eps)
-        x_train = apply_channel_stats(x_train, mu, sigma)
-        x_val   = apply_channel_stats(x_val, mu, sigma)
-        # Save stats for transparency
-        stats_path = out_dir / f"seed_{seed:03d}_norm_stats.json"
-        stats = {
-            "mu_shape": list(mu.shape),
-            "sigma_shape": list(sigma.shape),
-            "eps": eps,
-        }
-        stats_path.write_text(json.dumps(stats, indent=2))
-
     # Dataset + loader
     train_ds = NpySegmentationDataset(x_train, y_train)
     val_ds   = NpySegmentationDataset(x_val, y_val)
@@ -383,9 +367,33 @@ def main() -> None:
     manifest = {
         "variant": args.variant,
         "model_params": model_params,
-        "train_cfg": train_cfg.get("training", {}),
+        "training": train_cfg.get("training", {}),
+        "optimizer": train_cfg.get("optimizer", {}),
+        "scheduler": train_cfg.get("scheduler", {}),
+        "loss": train_cfg.get("loss", {}),
+        "normalization": train_cfg.get("normalization", {}),
     }
     (run_out / "run_manifest.json").write_text(json.dumps(manifest, indent=2))
+
+    # --- Normalization (paper-aligned): fit on TRAIN only, apply to TRAIN/VAL/TEST ---
+    norm_cfg = train_cfg.get("normalization", None)
+    if norm_cfg is None or not bool(norm_cfg.get("enabled", True)):
+        raise ValueError(
+            "Normalization must be enabled to match the manuscript. "
+            "Set `normalization.enabled: true` in configs/train.yaml."
+        )
+
+    eps = float(norm_cfg.get("eps", 1e-6))
+
+    mu, sigma = fit_train_channel_stats(x_train, eps=eps)
+    x_train = apply_channel_stats(x_train, mu, sigma)
+    x_val   = apply_channel_stats(x_val,   mu, sigma)
+    x_test  = apply_channel_stats(x_test,  mu, sigma)
+
+    # Save stats once (used later by evaluation)
+    stats_path = run_out / "norm_stats.npz"
+    np.savez(stats_path, mu=mu, sigma=sigma, eps=np.float32(eps))
+    print(f"[info] saved normalization stats: {stats_path}")
 
     # Multi-seed
     seeds_cfg = train_cfg["training"]["seeds"]
@@ -414,7 +422,6 @@ def main() -> None:
         print(" -", c)
 
     # Note: Evaluation is handled in a separate script (03_evaluate.py)
-
 
 if __name__ == "__main__":
     main()
