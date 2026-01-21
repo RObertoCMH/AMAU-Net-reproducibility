@@ -1,0 +1,66 @@
+# configs/train.yaml
+# -------------------------------------------------------------------
+# AMAU-Net — TRAINING CONFIG (common protocol for all variants)
+#
+# This config documents the training protocol used for the controlled ablation:
+# U-Net (amp), U-Net+attributes, and AMAU-Net are trained under identical
+# optimization settings and training budget.
+# -------------------------------------------------------------------
+
+training:
+  device: "auto"              # "cuda", "mps", or "cpu" (auto-select in code later)
+  batch_size: 8
+
+  # Training budget
+  epochs: 300                 # set to the fixed budget used in your runs
+  early_stopping: false       # manuscript uses fixed-budget training
+
+  # Randomness / repeatability
+  seeds:
+    n_runs: 10
+    values: [42,43,44,45,46,47,48,49,50,51]   # replace with your actual seeds if different
+  deterministic: true         # if supported (torch.backends.cudnn.deterministic, etc.)
+
+optimizer:
+  name: "adam"
+  lr: 1.0e-4
+  weight_decay: 0.0
+
+scheduler:
+  name: "cyclical_lr"
+  mode: "triangular"          # CLR triangular policy (per-batch stepping)
+  base_lr: 1.0e-4
+  max_lr: 1.0e-3
+  step_size_up: null          # optional: set if you used an explicit step_size_up
+  step_size_down: null        # optional
+  cycle_momentum: false       # typical setting for Adam + CLR
+
+loss:
+  name: "weighted_cross_entropy"
+  class_weights:
+    method: "inverse_frequency"
+    eps: 1.0e-6
+    normalize: true           # renormalize weights to keep scale stable
+
+regularization:
+  batchnorm: true
+  dropout2d:
+    enabled: true
+    # Matches your model style: dropout increases with depth (documentary).
+    p_start: 0.25
+    p_end: 0.50
+
+augmentation:
+  enabled: true
+  # Keep this high-level; exact ops will be defined later in code
+  note: "Joint image-mask transforms applied to training only."
+
+checkpointing:
+  # Manuscript reports final-epoch checkpoint (no early stopping)
+  save_best: false
+  save_last: true
+  output_dir: "outputs/checkpoints"   # not committed to git
+
+logging:
+  output_dir: "outputs/logs"          # not committed
+  metrics_per_epoch: true
