@@ -205,3 +205,19 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# --- Project-specific (do NOT upload) ---
+data/
+outputs/
+runs/
+checkpoints/
+*.npy
+*.npz
+*.pth
+*.pt
+*.ckpt
+*.csv
+*.log
+.ipynb_checkpoints/
+.DS_Store
+
