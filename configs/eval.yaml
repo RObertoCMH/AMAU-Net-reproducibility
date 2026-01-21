@@ -1,0 +1,62 @@
+# configs/eval.yaml
+# -------------------------------------------------------------------
+# AMAU-Net — EVALUATION CONFIG
+#
+# Defines the evaluation metrics and reporting format for the multi-seed
+# benchmark on the held-out test region (Benchmark Test set #1).
+# -------------------------------------------------------------------
+
+evaluation:
+  split: "test"                 # evaluate on the test split by default
+  n_classes: 6
+  class_names:
+    - "Upper North Sea"
+    - "Middle North Sea"
+    - "Lower North Sea"
+    - "Rijnland/Chalk"
+    - "Scruff"
+    - "Zechstein"
+
+  # Metrics reported in the manuscript
+  metrics:
+    - "pixel_accuracy"          # PA
+    - "macro_class_accuracy"    # MCA
+    - "mean_iou"                # mIoU
+    - "dice"                    # (frequency-weighted or mean; see below)
+    - "fwiu"                    # Frequency Weighted IoU
+    - "per_class_iou"
+
+  averaging:
+    # Macro averages are unweighted; frequency-weighted metrics use pixel frequency.
+    macro: "unweighted"
+    frequency_weighted: true
+
+reporting:
+  # Aggregate results across seeds
+  aggregate_across_seeds: true
+  summary_stats:
+    - "mean"
+    - "std"
+
+  # Save per-seed metrics and aggregated summaries (not committed)
+  output_dir: "outputs/eval"
+  save_formats: ["csv", "json"]
+
+  # Recommended filenames (scripts can follow these conventions)
+  per_seed_file: "metrics_per_seed.csv"
+  summary_file: "metrics_summary_mean_std.csv"
+
+delta_iou_figure:
+  # Optional: reproduce Fig. 8 (paired ΔIoU across seeds)
+  enabled: true
+  reference_variant: "unet_attrs"   # ΔIoU = variant - reference (AMAU-Net - U-Net+attributes)
+  target_variant: "amau_net"
+  confidence_interval:
+    enabled: true
+    level: 0.95
+    method: "t_interval"            # mean ± t * std/sqrt(n), n=number of seeds
+  plot:
+    title: "Per-facies IoU change due to attention (paired, mean ± 95% CI)"
+    ylabel: "ΔIoU (target − reference)"
+    save_name: "delta_iou_attention_ci95_points"
+    save_formats: ["png", "pdf"]
