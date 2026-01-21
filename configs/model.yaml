@@ -1,33 +1,46 @@
 # configs/model.yaml
 # -------------------------------------------------------------------
-# AMAU-Net — MODEL CONFIG (matches UNetWithAttention implementation)
+# AMAU-Net — MODEL CONFIG 
 #
-# The code implements a U-Net backbone with optional attention:
-# - CBAM blocks can be enabled only at specific layer IDs implemented in code:
-#   encoder: 2, 3, 4   (after conv2/conv3/conv4)
-#   decoder: 6, 7, 8   (after conv6/conv7/conv8)
-# - A single self-attention block can be enabled at the bottleneck (after conv5).
+# We use a single implementation class: UNetWithAttention.
+# - Plain U-Net: attention disabled.
+# - U-Net + attributes: 4-channel input, attention disabled.
+# - AMAU-Net: 4-channel input + selected CBAM insertions + bottleneck self-attention.
 #
-# For this manuscript, AMAU-Net is modular in design, but we enable CBAM only at
-# three locations (2 encoder + 1 decoder) plus bottleneck self-attention to keep
-# overhead small and ensure a fair ablation.
+# CBAM insertion points implemented in code (layer IDs):
+#   encoder: 2, 3, 4  (after conv2/conv3/conv4)
+#   decoder: 6, 7, 8  (after conv6/conv7/conv8)
+# Paper setting enables CBAM at [2, 4, 8] and self-attention at the bottleneck.
 # -------------------------------------------------------------------
 
-model:
+implementation:
   class_name: "UNetWithAttention"
+
+defaults:
   n_classes: 6
-  in_channels: 4          # 1 for amplitude-only baseline; 4 for multi-attribute input
-  n_filters: 80           # matches n_filters default in code
-  dropout: 0.5            # base dropout value passed to Dropout2d
+  n_filters: 80
+  dropout: 0.5
   batchnorm: true
 
-attention:
-  use_self_attention: true   # enables SelfAttentionBlock at bottleneck (after conv5)
+cbam:
+  supported_layer_ids: [2, 3, 4, 6, 7, 8]
 
-  cbam:
-    # CBAM layer IDs supported by the current implementation
-    supported_layer_ids: [2, 3, 4, 6, 7, 8]
+variants:
+  unet_amp:
+    description: "Amplitude-only baseline (plain U-Net)."
+    in_channels: 1
+    use_self_attention: false
+    cbam_in_layers: []
 
-    # CBAM layer IDs actually used in this work (paper setting)
-    # Choose the three IDs that match your experiment (2 encoder + 1 decoder).
-    cbam_in_layers: [2, 3, 6]
+  unet_attrs:
+    description: "Multi-attribute U-Net (no attention)."
+    in_channels: 4
+    use_self_attention: false
+    cbam_in_layers: []
+
+  amau_net:
+    description: "AMAU-Net (attributes + selected CBAM + bottleneck self-attention)."
+    in_channels: 4
+    use_self_attention: true
+    cbam_in_layers: [2, 4, 8]
+
