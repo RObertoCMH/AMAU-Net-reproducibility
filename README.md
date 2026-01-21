@@ -91,25 +91,15 @@ See: `configs/model.yaml`.
 
 The code is written in Python and uses PyTorch for training.
 
-Core dependencies (from the original notebooks / planned scripts):
-- Python 3.9+ (recommended)
-- numpy, scipy
-- torch, torchvision
-- albumentations
-- matplotlib, pandas
-- tqdm
-- torchmetrics, scikit-image
+Core dependencies are listed in `requirements.txt`.
 
----
+## Installation (example)
 
-## Environment setup (example)## Environment setup (example)
-
-
-
-Using conda:
+Using conda/Anaconda:
 
 ```bash
 conda create -n amau python=3.10 -y
 conda activate amau
 pip install -r requirements.txt
+
 
