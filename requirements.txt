@@ -8,3 +8,4 @@ torchvision
 albumentations
 scikit-image
 torchmetrics
+pyyaml
