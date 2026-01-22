@@ -1,0 +1,102 @@
+# Getting the F3 Netherlands facies benchmark (Alaudah et al.)
+
+## Why this folder exists
+This repository follows a benchmark split on the Netherlands F3 block and reports results under a fixed spatial protocol.
+Because the dataset is large, we do **not** redistribute it here. You must download it from the original authors.
+
+## Official source (recommended)
+The benchmark dataset is provided by the authors of:
+“A Machine Learning Benchmark for Facies Classification” (Alaudah et al., 2019).
+
+**Zenodo record (dataset DOI):** 10.5281/zenodo.3755060  
+The record provides (at least) `data.zip` and `raw.zip`.
+
+> Tip: Start with `data.zip` (it typically includes the benchmark-ready split and files needed for training/testing).
+
+## Alternative source (same authors)
+The authors also host code + references to the dataset on GitHub:
+- https://github.com/yalaudah/facies_classification_benchmark
+(or the OLIVES mirror / fork)
+
+If you use the GitHub route, prefer the Zenodo data for stable versioning and DOI citation.
+
+---
+
+## Benchmark split (paper protocol)
+Inline 300 and crossline 1000 divide the survey into four regions.
+
+The benchmark defines (ranges inclusive):
+- **Training set (NW block):** inlines [300, 700], crosslines [300, 1000]
+- **Test set #1 (SW block):** inlines [100, 299], crosslines [300, 1000]
+- **Test set #2 (E block):** inlines [100, 700], crosslines [1001, 1200]
+
+This repository uses:
+- **Validation = Test set #2**
+- **Test = Test set #1** (held-out benchmark “Test set #1”)
+
+---
+
+## Expected local layout
+The scripts/configs in this repo expect **NumPy arrays** stored under a user-defined base directory (not committed to git).
+
+Set your base directory in `configs/split.yaml`, e.g.
+`data.base_dir: "/absolute/path/to/your/data"`
+
+Then the following files are expected:
+
+- `train/train_seismic.npy`
+- `train/train_labels.npy`
+
+- `validation/test2_seismic.npy`
+- `validation/test2_labels.npy`
+
+- `test/test1_seismic.npy`
+- `test/test1_labels.npy`
+
+Notes:
+- `*_seismic.npy` should be float arrays.
+- `*_labels.npy` should be integer arrays with class IDs matching the manuscript (6 facies).
+
+---
+
+## How to place the files after download
+After downloading and unzipping the benchmark from Zenodo, inspect its folder structure.
+
+You may need to do one of the following:
+1) **Rename** the provided split folders to match `train/`, `validation/`, `test/`, or
+2) **Copy** the corresponding `.npy` arrays into the expected paths above, or
+3) **Symlink** from your local dataset folder into the expected structure.
+
+This repo intentionally keeps the file naming explicit so the split is unambiguous.
+
+---
+
+## Sanity checks (recommended)
+Before training, verify:
+- arrays load correctly
+- seismic/labels shapes match
+- labels are in the expected class range
+
+Example (run locally):
+
+```python
+import numpy as np
+from pathlib import Path
+
+base = Path("/absolute/path/to/your/data")  # must match configs/split.yaml
+
+paths = [
+    base/"train/train_seismic.npy",
+    base/"train/train_labels.npy",
+    base/"validation/test2_seismic.npy",
+    base/"validation/test2_labels.npy",
+    base/"test/test1_seismic.npy",
+    base/"test/test1_labels.npy",
+]
+
+for p in paths:
+    arr = np.load(p)
+    print(p.name, arr.shape, arr.dtype)
+
+y = np.load(base/"train/train_labels.npy")
+print("train labels:", y.min(), y.max(), "unique:", len(np.unique(y)))
