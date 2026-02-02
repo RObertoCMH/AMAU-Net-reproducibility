@@ -1,0 +1,59 @@
+Appendix A. Pseudocode: AMAU-Net end-to-end workflow
+Algorithm A1. Preprocessing, spatial split, training, and evaluation pipeline
+1: Input: post-STM seismic amplitude volume S; facies label volume L; split lines IL0 = 300 and XL0        = 1000; target size (H,W) = (512,256); number of epochs E; random seeds {s_k}; eps (small constant).
+2: Output: Test predictions and metrics on the held-out region (benchmark Test set #1), per seed.
+
+3: # Attribute computation (per trace along time-sample axis)
+4: A = HilbertTransform(S) 				# analytic signal
+5: Env = abs(A)
+6: Phase = angle(A)  					# radians
+7: InsPhase = unwrap(Phase) 				# unwrap along time axis
+8: InsFreq = gradient(InsPhase) 			# dφ/dn, (rad/sample)
+
+9: # 4-channel input
+10: X = StackChannels([S, Phase, InsFreq, Env])
+
+11: # Benchmark spatial partition (Alaudah-style)
+12: TrainRegion = {(IL,XL): IL >= IL0 and XL <= XL0} 	# NW block
+13: ValRegion = {(IL,XL): IL >= IL0 and XL > XL0} 		# E block (Validation)
+14: TestRegion = {(IL,XL): IL < IL0 and XL <= XL0} 		# SW block (Test set #1)
+15: TrainSet = Extract2DSections(X, L, region=TrainRegion)
+16: ValSet = Extract2DSections(X, L, region=ValRegion)
+17: TestSet = Extract2DSections(X, L, region=TestRegion)
+
+18: # Preprocessing: resize (inputs + masks)
+19: for each D in {TrainSet, ValSet, TestSet}:
+20:   D.X = Resize(D.X, H, W, method="bilinear")
+21:   D.Y = Resize(D.Y, H, W, method="nearest")
+22: end for
+
+23: # Normalization: z-score (fit on train, apply to all splits)
+24: (mu, sigma) = ChannelStats(TrainSet.X)            
+25: for each D in {TrainSet, ValSet, TestSet}:
+26:   D.X = (D.X - mu) / (sigma + eps)
+27: end for
+
+28: # Training and evaluation (repeat for multiple random seeds)
+29: for each seed in {s_k}:
+30:   SetRandomSeed(seed)
+31:   model = InitializeModel("AMAU-Net")
+32:   opt = Adam(model.parameters)
+33:   wcls = InverseFrequencyWeights(TrainSet.Y)
+34:   for epoch = 1..E:
+35:    model.train()
+36:    for each minibatch (x,y) in TrainSet:
+37:     (x,y) = Augment(x,y) 			# structure-preserving (train only)
+38:     y_hat = Forward(model, x)
+39:     loss = WeightedCrossEntropy(y_hat, y, wcls)
+40:     BackpropAndUpdate(loss, opt)
+41:    end for
+42:    model.eval()
+43:    val_metric = Evaluate(model, ValSet)	 # monitoring only
+44:   end for
+45:   PredTest = Inference(model, TestSet)
+46:   Metrics = ComputeMetrics(PredTest, TestSet.Y) 
+
+47# PA, MCA, mIoU, Dice, FWIU, per-class IoU
+48:   Store(Metrics, seed)
+49: end for
+50: Report mean ± std across seeds; generate qualitative panels from TestSet.
